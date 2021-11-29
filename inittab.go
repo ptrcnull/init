@@ -30,13 +30,27 @@ var ActionMap = map[string]Action{
 	"ctrlaltdel": CtrlAltDel,
 }
 
-type TabEntry struct {
+type InitTabEntry struct {
 	Device  string
 	Action  Action
 	Process string
 }
 
-var DefaultInittab = []TabEntry{
+type InitTab []InitTabEntry
+
+func (i InitTab) Entries(action Action) InitTab {
+	var res InitTab
+
+	for _, entry := range i {
+		if entry.Action == action {
+			res = append(res, entry)
+		}
+	}
+
+	return res
+}
+
+var DefaultInitTab = InitTab{
 	{"", SysInit, "/etc/init.d/rcS"},
 	{"", AskFirst, "/bin/sh"},
 	{"", CtrlAltDel, "/sbin/reboot"},
@@ -48,8 +62,8 @@ var DefaultInittab = []TabEntry{
 	{"tty4", AskFirst, "/bin/sh"},
 }
 
-func ParseInittab(reader io.Reader) []TabEntry {
-	var res []TabEntry
+func ParseInitTab(reader io.Reader) InitTab {
+	var res InitTab
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -67,7 +81,7 @@ func ParseInittab(reader io.Reader) []TabEntry {
 			continue
 		}
 
-		res = append(res, TabEntry{
+		res = append(res, InitTabEntry{
 			Device:  tokens[0],
 			Action:  action,
 			Process: tokens[3],

@@ -31,7 +31,7 @@ var ActionMap = map[string]Action{
 }
 
 type TabEntry struct {
-	Id      string
+	Device  string
 	Action  Action
 	Process string
 }
@@ -68,7 +68,7 @@ func ParseInittab(reader io.Reader) []TabEntry {
 		}
 
 		res = append(res, TabEntry{
-			Id:      tokens[0],
+			Device:  tokens[0],
 			Action:  action,
 			Process: tokens[3],
 		})

@@ -30,10 +30,8 @@ func Exec(entry InitTabEntry) error {
 		return fmt.Errorf("spawn: %w", err)
 	}
 
-	err = cmd.Wait()
-	if err != nil {
-		return fmt.Errorf("wait: %w", err)
-	}
+	// skipping error handling due to wait4 in main
+	cmd.Wait()
 
 	return nil
 }

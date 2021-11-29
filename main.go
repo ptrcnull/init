@@ -57,6 +57,12 @@ func main() {
 
 	signal.Notify(sigs, syscall.SIGUSR2, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
 
+	go func() {
+		for {
+			syscall.Wait4(-1, nil, 0, nil)
+		}
+	}()
+
 	select {}
 }
 

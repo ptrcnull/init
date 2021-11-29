@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 )
 
 func main() {
@@ -17,42 +20,74 @@ func main() {
 		fmt.Printf("error reading inittab: %s\n", err)
 	}
 
-	for _, entry := range inittab.Entries(SysInit) {
-		err := Exec(entry)
-		if err != nil {
-			fmt.Printf("error running sysinit \"%s\": %s\n", entry.Process, err)
-		}
-	}
-
-	for _, entry := range inittab.Entries(Wait) {
-		err := Exec(entry)
-		if err != nil {
-			fmt.Printf("error running wait \"%s\": %s\n", entry.Process, err)
-		}
-	}
-
-	for _, entry := range inittab.Entries(Once) {
-		_, err := Spawn(entry)
-		if err != nil {
-			fmt.Printf("error running once \"%s\": %s\n", entry.Process, err)
-		}
-	}
+	inittab.Entries(SysInit).ExecAll()
+	inittab.Entries(Wait).ExecAll()
+	inittab.Entries(Once).SpawnAll()
+	inittab.Entries(Respawn).RespawnAll()
 
 	// TODO implement AskFirst handling
 
-	for _, entry := range inittab.Entries(Respawn) {
+	sigs := make(chan os.Signal, 1)
+
+	go func() {
+		for {
+			sig := <-sigs
+			switch sig {
+			case syscall.SIGUSR2:
+				// shutdown
+				inittab.Entries(Shutdown).ExecAll()
+				syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF)
+
+			case syscall.SIGTERM:
+				// reboot
+				inittab.Entries(Shutdown).ExecAll()
+				syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
+
+			case syscall.SIGQUIT:
+				inittab.Entries(Shutdown).ExecAll()
+				restart := inittab.Entries(Restart)[0]
+				cmdline := strings.Split(restart.Process, " ")
+				syscall.Exec(cmdline[0], cmdline[1:], []string{})
+
+			case syscall.SIGINT:
+				inittab.Entries(CtrlAltDel).ExecAll()
+			}
+		}
+	}()
+
+	signal.Notify(sigs, syscall.SIGUSR2, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
+
+	select {}
+}
+
+func (i InitTab) ExecAll() {
+	for _, entry := range i {
+		err := Exec(entry)
+		if err != nil {
+			fmt.Printf("error executing \"%s\": %s\n", entry.Process, err)
+		}
+	}
+}
+
+func (i InitTab) SpawnAll() {
+	for _, entry := range i {
+		_, err := Spawn(entry)
+		if err != nil {
+			fmt.Printf("error spawning \"%s\": %s\n", entry.Process, err)
+		}
+	}
+}
+
+func (i InitTab) RespawnAll() {
+	for _, entry := range i {
 		go func(entry InitTabEntry) {
 			for {
 				err := Exec(entry)
 				if err != nil {
-					fmt.Printf("error running respawn \"%s\": %s\n", entry.Process, err)
+					fmt.Printf("error respawning \"%s\": %s\n", entry.Process, err)
 					break
 				}
 			}
 		}(entry)
 	}
-
-	// TODO implement Shutdown, Restart and CtrlAltDel handling
-
-	select {}
 }

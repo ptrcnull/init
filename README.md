@@ -8,4 +8,3 @@ Drop-in replacement for busybox init (kind of)
 
 - askfirst handling
 - other devices than /dev/console
-- proper shutdown

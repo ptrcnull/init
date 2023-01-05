@@ -11,10 +11,17 @@ func Spawn(entry InitTabEntry) (*exec.Cmd, error) {
 	cmdline := strings.Split(entry.Process, " ")
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
 
-	// TODO: add stdio handling
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	stdio := os.Stdout
+	if entry.Device != "" {
+		dev, err := GetDevice(entry.Device)
+		if err != nil {
+			return nil, fmt.Errorf("open device %s: %w", entry.Device, err)
+		}
+		stdio = dev
+	}
+	cmd.Stdin = stdio
+	cmd.Stdout = stdio
+	cmd.Stderr = stdio
 
 	err := cmd.Start()
 	if err != nil {

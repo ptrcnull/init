@@ -7,4 +7,3 @@ Drop-in replacement for busybox init (kind of)
 ### TODO
 
 - askfirst handling
-- other devices than /dev/console

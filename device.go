@@ -3,12 +3,20 @@ package main
 import (
 	"fmt"
 	"os"
+	"sync"
 )
 
-var devices = map[string]*os.File{}
+type DeviceMap struct {
+	sync.Mutex
+	m map[string]*os.File
+}
+
+var devices = DeviceMap{
+	m: map[string]*os.File{},
+}
 
 func GetDevice(name string) (*os.File, error) {
-	if dev, ok := devices[name]; ok {
+	if dev, ok := devices.m[name]; ok {
 		return dev, nil
 	}
 
@@ -17,6 +25,8 @@ func GetDevice(name string) (*os.File, error) {
 		return nil, fmt.Errorf("open: %w", err)
 	}
 
-	devices[name] = dev
+	devices.Lock()
+	devices.m[name] = dev
+	devices.Unlock()
 	return dev, nil
 }

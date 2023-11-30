@@ -9,6 +9,13 @@ import (
 )
 
 func main() {
+	defer func() {
+		err := recover()
+		if err != nil {
+			fmt.Printf("====================\npanic caught in main: %s\n====================\n", err)
+		}
+	}()
+
 	inittab := DefaultInitTab
 	if file, err := os.OpenFile("/etc/inittab", os.O_RDONLY, 0644); err == nil {
 		inittab = ParseInitTab(file)
@@ -87,6 +94,13 @@ func (i InitTab) SpawnAll() {
 func (i InitTab) RespawnAll() {
 	for _, entry := range i {
 		go func(entry InitTabEntry) {
+			defer func() {
+				err := recover()
+				if err != nil {
+					fmt.Printf("====================\npanic caught in RespawnAll: %s\n====================\n", err)
+				}
+			}()
+
 			for {
 				err := Exec(entry)
 				if err != nil {

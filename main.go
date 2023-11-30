@@ -16,6 +16,11 @@ func main() {
 		}
 	}()
 
+	if os.Getpid() != 1 {
+		fmt.Printf("%s should only be ran as pid1, exiting\n", os.Args[0])
+		os.Exit(1)
+	}
+
 	inittab := DefaultInitTab
 	if file, err := os.OpenFile("/etc/inittab", os.O_RDONLY, 0644); err == nil {
 		inittab = ParseInitTab(file)

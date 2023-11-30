@@ -6,6 +6,9 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+
+	"github.com/ptrcnull/init/common"
+	"github.com/ptrcnull/init/israc"
 )
 
 func main() {
@@ -30,6 +33,10 @@ func main() {
 		}
 	} else {
 		fmt.Printf("error reading inittab: %s\n", err)
+	}
+
+	if common.Getopt("israc", "0") == "1" {
+		go israc.Start()
 	}
 
 	inittab.Entries(SysInit).ExecAll()
